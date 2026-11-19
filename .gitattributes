@@ -1,0 +1,11 @@
+# Every text file is checked out with LF line ends on every platform, whatever core.autocrlf says.
+# Git for Windows turns core.autocrlf on by default, which would give each script, configuration example and
+# list a CR at the end of every line: the scripts still run, but a KEY=value value would carry the CR into a path.
+* text=auto eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.env.example text eol=lf
+*.json text eol=lf
+*.jq text eol=lf
+*.yml text eol=lf
+*.txt text eol=lf

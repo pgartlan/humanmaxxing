@@ -1,0 +1,60 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ matrix.timeout }}
+    defaults:
+      run:
+        # Git Bash on Windows (never the WSL bash.exe a bare `bash` can resolve to from PowerShell); bash elsewhere.
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        # macOS runs the scripts under the system bash 3.2 and BSD userland, which the scripts claim to support.
+        # Windows runs them under Git for Windows' bash (MSYS2), the shell Claude Code uses there.
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            timeout: 10
+          - os: macos-latest
+            timeout: 10
+          # Process starts are far slower under MSYS: `T_JOBS=4 bash tests/run.sh` took 31 minutes on a Windows 11
+          # workstation (the hooks guard's file alone about 18), against about 2 on Linux. 60 leaves room for a
+          # slower runner without hiding a hang for long.
+          - os: windows-latest
+            timeout: 60
+    steps:
+      - name: Check out text with LF line ends (Windows)
+        if: runner.os == 'Windows'
+        # .gitattributes already forces LF; this keeps a checkout made before it is read the same way.
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+      - name: Install shellcheck (macOS)
+        if: runner.os == 'macOS'
+        run: brew install shellcheck
+      - name: Install shellcheck (Windows)
+        if: runner.os == 'Windows'
+        # jq too, whatever the image ships: ship and the hooks installer need it, and choco's is the native jq.exe
+        # (CRLF output) that Windows users get.
+        run: choco install shellcheck jq --no-progress -y
+      - name: Tool versions
+        run: |
+          bash --version | head -1
+          git --version
+          shellcheck --version | sed -n 2p
+      - name: Syntax, lint, script tests
+        run: bash tests/run.sh

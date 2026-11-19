@@ -1,0 +1,38 @@
+{
+  "protected-file-guard": {
+    "event": "PreToolUse",
+    "matcher": "Edit|Write|NotebookEdit|Bash",
+    "handler": {
+      "type": "command",
+      "command": "d=\"$(git -C \"$CLAUDE_PROJECT_DIR\" rev-parse --show-toplevel 2>/dev/null || printf %s \"$CLAUDE_PROJECT_DIR\")\"; f=\"$d/.claude/hooks/protected-file-guard.sh\"; if [ -f \"$f\" ]; then exec bash \"$f\"; fi; if [ -e \"$d/.claude/hooks/hooks.env\" ] || [ -e \"$d/.claude/protected-files.txt\" ]; then x=ask; if grep -Eq '\"permission_mode\"[[:space:]]*:[[:space:]]*\"(bypassPermissions|dontAsk)\"'; then x=deny; fi; printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"%s\",\"permissionDecisionReason\":\"%s\"}}\\n' \"$x\" \"The protected-file guard script is missing, but this repository still has its hooks configuration, so every edit and command needs your approval until the guard is restored: git checkout -- .claude/hooks, or reinstall from the download.\"; exit 0; fi; echo \"hooks pack: $f is not installed in this folder, so protected-file-guard is off here\" >&2",
+      "timeout": 10,
+      "onFailure": "block"
+    }
+  },
+  "commit-check": {
+    "event": "PreToolUse",
+    "matcher": "Bash",
+    "handler": {
+      "type": "command",
+      "command": "d=\"$(git -C \"$CLAUDE_PROJECT_DIR\" rev-parse --show-toplevel 2>/dev/null || printf %s \"$CLAUDE_PROJECT_DIR\")\"; f=\"$d/.claude/hooks/commit-check.sh\"; if [ -f \"$f\" ]; then exec bash \"$f\"; fi; v=\"$(grep -E '^COMMIT_CHECK_CMD=' \"$d/.claude/hooks/hooks.env\" 2>/dev/null | tail -1)\"; case \"${v#COMMIT_CHECK_CMD=}\" in *[![:space:]]*) i=\"$(cat)\"; c=\"$(printf '%s' \"$i\" | grep -oE '\"command\"[[:space:]]*:[[:space:]]*\"([^\"\\\\]|\\\\.)*\"' | head -1)\"; [ -n \"$c\" ] || c=\"$i\"; if printf '%s' \"$c\" | grep -Eq '(^|[^A-Za-z0-9_.-])git([^A-Za-z0-9_.-].*)?[^A-Za-z0-9_-]commit([^A-Za-z0-9_-]|$)'; then x=ask; if printf '%s' \"$i\" | grep -Eq '\"permission_mode\"[[:space:]]*:[[:space:]]*\"(bypassPermissions|dontAsk)\"'; then x=deny; fi; printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"%s\",\"permissionDecisionReason\":\"%s\"}}\\n' \"$x\" \"The commit check script is missing, but this repository's .claude/hooks/hooks.env still sets COMMIT_CHECK_CMD, so the check was NOT run and every commit needs your approval until the script is restored: git checkout -- .claude/hooks, or reinstall from the download.\"; exit 0; fi ;; esac; echo \"hooks pack: $f is not installed in this folder, so commit-check is off here\" >&2",
+      "timeout": 70,
+      "onFailure": "block"
+    }
+  },
+  "pending-question-reprint": {
+    "event": "Stop",
+    "handler": {
+      "type": "command",
+      "command": "d=\"$(git -C \"$CLAUDE_PROJECT_DIR\" rev-parse --show-toplevel 2>/dev/null || printf %s \"$CLAUDE_PROJECT_DIR\")\"; f=\"$d/.claude/hooks/pending-question-reprint.sh\"; if [ -f \"$f\" ]; then exec bash \"$f\"; fi; echo \"hooks pack: $f is not installed in this folder, so pending-question-reprint is off here\" >&2",
+      "timeout": 10
+    }
+  },
+  "review-nudge": {
+    "event": "Stop",
+    "handler": {
+      "type": "command",
+      "command": "d=\"$(git -C \"$CLAUDE_PROJECT_DIR\" rev-parse --show-toplevel 2>/dev/null || printf %s \"$CLAUDE_PROJECT_DIR\")\"; f=\"$d/.claude/hooks/review-nudge.sh\"; if [ -f \"$f\" ]; then exec bash \"$f\"; fi; echo \"hooks pack: $f is not installed in this folder, so review-nudge is off here\" >&2",
+      "timeout": 30
+    }
+  }
+}

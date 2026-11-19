@@ -1,0 +1,3 @@
+# Every script sources a library whose path is computed at run time (SC1090/SC1091), and the libraries set
+# variables their callers read (SC2034). Everything else at severity "warning" and above is enforced by tests/run.sh.
+disable=SC1090,SC1091,SC2034
